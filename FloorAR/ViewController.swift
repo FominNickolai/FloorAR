@@ -50,17 +50,16 @@ class ViewController: UIViewController {
         let location = SCNVector3(transform.m41, transform.m42, transform.m43)
         let currentPositionOfCamera = orientation + location
         
+        let scene = SCNScene(named: "Car-Scene.scn")
+        let frame = (scene?.rootNode.childNode(withName: "frame", recursively: false))!
+        frame.position = currentPositionOfCamera
         
-        let box = SCNNode(geometry: SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0))
-        box.geometry?.firstMaterial?.diffuse.contents = UIColor.blue
-        box.position = currentPositionOfCamera
-        
-        //Physics body for box
+        //Physics body for carNode
         //SCNPhysicsShape.Option.keepAsCompound - compound in one node
-        let body = SCNPhysicsBody(type: .dynamic, shape: SCNPhysicsShape(node: box, options: [SCNPhysicsShape.Option.keepAsCompound : true]))
-        box.physicsBody = body
+        let body = SCNPhysicsBody(type: .dynamic, shape: SCNPhysicsShape(node: frame, options: [SCNPhysicsShape.Option.keepAsCompound : true]))
+        frame.physicsBody = body
         
-        self.sceneView.scene.rootNode.addChildNode(box)
+        self.sceneView.scene.rootNode.addChildNode(frame)
      
         
     }
