@@ -8,6 +8,7 @@
 
 import UIKit
 import ARKit
+import CoreMotion
 
 class ViewController: UIViewController {
 
@@ -15,6 +16,7 @@ class ViewController: UIViewController {
     
     let configuration = ARWorldTrackingConfiguration()
     
+    let motionManager = CMMotionManager()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -23,7 +25,7 @@ class ViewController: UIViewController {
         self.configuration.planeDetection = .horizontal
         self.sceneView.session.run(configuration, options: [])
         self.sceneView.delegate = self
-        
+        setUpAccelerometer()
     }
     
     //Create Lava node
@@ -62,6 +64,33 @@ class ViewController: UIViewController {
         self.sceneView.scene.rootNode.addChildNode(frame)
      
         
+    }
+    
+    //Accelemoter Data
+    func setUpAccelerometer() {
+        
+        if motionManager.isAccelerometerAvailable {
+            
+            motionManager.accelerometerUpdateInterval = 1/60
+            motionManager.startAccelerometerUpdates(to: .main, withHandler: { (accelerometerData, error) in
+                if let error = error {
+                    print(error.localizedDescription)
+                    return
+                }
+                
+                self.accelerometerDidChange(acceleration: (accelerometerData?.acceleration)!)
+            })
+            
+        } else {
+            print("accelemoter not available")
+        }
+        
+    }
+    
+    func accelerometerDidChange(acceleration: CMAcceleration) {
+        print(acceleration.x)
+        print(acceleration.y)
+        print(acceleration.z)
     }
     
 }
