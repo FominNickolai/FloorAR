@@ -18,6 +18,8 @@ class ViewController: UIViewController {
     
     let motionManager = CMMotionManager()
     
+    var vehicle = SCNPhysicsVehicle()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -53,15 +55,30 @@ class ViewController: UIViewController {
         let currentPositionOfCamera = orientation + location
         
         let scene = SCNScene(named: "Car-Scene.scn")
-        let frame = (scene?.rootNode.childNode(withName: "frame", recursively: false))!
-        frame.position = currentPositionOfCamera
+        let chassis = (scene?.rootNode.childNode(withName: "chassis", recursively: false))!
+        
+        let frontLeftWheel = chassis.childNode(withName: "frontLeftParent", recursively: false)!
+        let frontRightWheel = chassis.childNode(withName: "frontRightParent", recursively: false)!
+        let rearLeftWheel = chassis.childNode(withName: "rearLeftParent", recursively: false)!
+        let rearRightWheel = chassis.childNode(withName: "rearRightParent", recursively: false)!
+        
+        let v_frontLeftWheel = SCNPhysicsVehicleWheel(node: frontLeftWheel)
+        let v_frontRightWheel = SCNPhysicsVehicleWheel(node: frontRightWheel)
+        let v_rearLeftWheel = SCNPhysicsVehicleWheel(node: rearLeftWheel)
+        let v_rearRightWheel = SCNPhysicsVehicleWheel(node: rearRightWheel)
+        
+        chassis.position = currentPositionOfCamera
         
         //Physics body for carNode
         //SCNPhysicsShape.Option.keepAsCompound - compound in one node
-        let body = SCNPhysicsBody(type: .dynamic, shape: SCNPhysicsShape(node: frame, options: [SCNPhysicsShape.Option.keepAsCompound : true]))
-        frame.physicsBody = body
+        let body = SCNPhysicsBody(type: .dynamic, shape: SCNPhysicsShape(node: chassis, options: [SCNPhysicsShape.Option.keepAsCompound : true]))
+        chassis.physicsBody = body
         
-        self.sceneView.scene.rootNode.addChildNode(frame)
+        self.vehicle = SCNPhysicsVehicle(chassisBody: chassis.physicsBody!, wheels: [v_rearRightWheel, v_rearLeftWheel, v_frontRightWheel, v_frontLeftWheel])
+        
+        self.sceneView.scene.physicsWorld.addBehavior(self.vehicle)
+        
+        self.sceneView.scene.rootNode.addChildNode(chassis)
      
         
     }
