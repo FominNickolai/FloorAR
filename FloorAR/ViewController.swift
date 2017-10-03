@@ -19,12 +19,14 @@ class ViewController: UIViewController {
     let motionManager = CMMotionManager()
     
     var vehicle = SCNPhysicsVehicle()
+    var orientation: CGFloat = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         self.sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints, ARSCNDebugOptions.showWorldOrigin]
         self.configuration.planeDetection = .horizontal
+        self.sceneView.showsStatistics = true
         self.sceneView.session.run(configuration, options: [])
         self.sceneView.delegate = self
         setUpAccelerometer()
@@ -105,9 +107,16 @@ class ViewController: UIViewController {
     }
     
     func accelerometerDidChange(acceleration: CMAcceleration) {
-        print(acceleration.x)
-        print(acceleration.y)
-        print(acceleration.z)
+        
+        if acceleration.x > 0 {
+            self.orientation = -CGFloat(acceleration.y)
+        } else {
+            self.orientation = CGFloat(acceleration.y)
+        }
+        
+//        print(acceleration.x)
+//        print(acceleration.y)
+//        print(acceleration.z)
     }
     
 }
@@ -148,6 +157,16 @@ extension ViewController: ARSCNViewDelegate {
         }
         
         print("didRemove ARPlaneAnchor")
+        
+    }
+    
+    //60 times at second if scene 60fps
+    func renderer(_ renderer: SCNSceneRenderer, didSimulatePhysicsAtTime time: TimeInterval) {
+        
+        self.vehicle.setSteeringAngle(orientation, forWheelAt: 2)
+        self.vehicle.setSteeringAngle(orientation, forWheelAt: 3)
+        
+        //print("simulating physics")
         
     }
     
