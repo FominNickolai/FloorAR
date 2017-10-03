@@ -21,6 +21,10 @@ class ViewController: UIViewController {
     var vehicle = SCNPhysicsVehicle()
     var orientation: CGFloat = 0
     
+    var accelerationValues = [UIAccelerationValue(0), UIAccelerationValue(0)]
+    
+    var touched: Int = 0
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -30,6 +34,16 @@ class ViewController: UIViewController {
         self.sceneView.session.run(configuration, options: [])
         self.sceneView.delegate = self
         setUpAccelerometer()
+    }
+    
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let _ = touches.first else { return }
+        //1touch - one finger, two touches - two fingers and so on
+        self.touched += touches.count
+    }
+    
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        self.touched = 0
     }
     
     //Create Lava node
@@ -75,6 +89,7 @@ class ViewController: UIViewController {
         //SCNPhysicsShape.Option.keepAsCompound - compound in one node
         let body = SCNPhysicsBody(type: .dynamic, shape: SCNPhysicsShape(node: chassis, options: [SCNPhysicsShape.Option.keepAsCompound : true]))
         chassis.physicsBody = body
+        body.mass = 1
         
         self.vehicle = SCNPhysicsVehicle(chassisBody: chassis.physicsBody!, wheels: [v_rearRightWheel, v_rearLeftWheel, v_frontRightWheel, v_frontLeftWheel])
         
@@ -108,15 +123,30 @@ class ViewController: UIViewController {
     
     func accelerometerDidChange(acceleration: CMAcceleration) {
         
-        if acceleration.x > 0 {
-            self.orientation = -CGFloat(acceleration.y)
+        accelerationValues[1] = filtered(currentAcceleration: accelerationValues[1], updatedAcceleration: acceleration.y)
+        accelerationValues[0] = filtered(currentAcceleration: accelerationValues[0], updatedAcceleration: acceleration.x)
+        
+        if accelerationValues[0] > 0 {
+            self.orientation = -CGFloat(accelerationValues[1])
         } else {
-            self.orientation = CGFloat(acceleration.y)
+            self.orientation = CGFloat(accelerationValues[1])
         }
         
 //        print(acceleration.x)
 //        print(acceleration.y)
 //        print(acceleration.z)
+    }
+    
+    
+    /// Filter acceleration wich is not gravitation
+    ///
+    /// - Parameters:
+    ///   - currentAcceleration: Double
+    ///   - updatedAcceleration: Double
+    /// - Returns: Double
+    func filtered(currentAcceleration: Double, updatedAcceleration: Double) -> Double {
+        let kfilteringFactor = 0.5
+        return updatedAcceleration * kfilteringFactor + currentAcceleration * (1 - kfilteringFactor)
     }
     
 }
@@ -163,8 +193,28 @@ extension ViewController: ARSCNViewDelegate {
     //60 times at second if scene 60fps
     func renderer(_ renderer: SCNSceneRenderer, didSimulatePhysicsAtTime time: TimeInterval) {
         
-        self.vehicle.setSteeringAngle(orientation, forWheelAt: 2)
-        self.vehicle.setSteeringAngle(orientation, forWheelAt: 3)
+        var engineForce: CGFloat = 0
+        var brackingForce: CGFloat = 0
+        
+        self.vehicle.setSteeringAngle(-orientation, forWheelAt: 2)
+        self.vehicle.setSteeringAngle(-orientation, forWheelAt: 3)
+        
+        switch self.touched {
+        case 1:
+            engineForce = 5
+        case 2:
+            engineForce = -5
+        case 3:
+            brackingForce = 100
+        default:
+            engineForce = 0
+        }
+        
+        self.vehicle.applyEngineForce(engineForce, forWheelAt: 0)
+        self.vehicle.applyEngineForce(engineForce, forWheelAt: 1)
+        
+        self.vehicle.applyBrakingForce(brackingForce, forWheelAt: 0)
+        self.vehicle.applyBrakingForce(brackingForce, forWheelAt: 1)
         
         //print("simulating physics")
         
